@@ -35,3 +35,11 @@ apicora-light/
 npm i -g vercel
 vercel dev        # isi .env.local dari .env.example
 ```
+
+## Tampilan iOS & simpan ke Galeri iPhone
+- Tema monokrom, otomatis mengikuti iOS (terang/gelap) + tombol toggle di header.
+- Tab bar di bawah (Presets / Adjust / Export), font sistem SF Pro.
+- **Save to Photos**: tombol muncul setelah hasil jadi. Membuka share sheet iOS, pilih **Save Image**.
+  Safari iOS tidak bisa menulis ke Photos lewat link download biasa (hanya ke Files), karena itu
+  dipakai Web Share API. Wajib HTTPS (Vercel sudah otomatis).
+- Tip: Share > "Add to Home Screen" untuk tampil layar penuh seperti app.
