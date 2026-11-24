@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) return res.status(500).json({ error: 'OPENAI_API_KEY belum diset di server.' });
 
-  const model = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1';
+  const model = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2.6-sunburst';
   const quality = process.env.OPENAI_IMAGE_QUALITY || 'medium';
   const { prompt, imageBase64, mimeType, aspectRatio } = req.body;
 
@@ -29,7 +29,8 @@ export default async function handler(req, res) {
     form.append('quality', quality);
     form.append('output_format', 'jpeg'); // lebih kecil, aman dari batas 4.5MB Vercel
     form.append('output_compression', '90');
-    form.append('input_fidelity', 'high'); // jaga wajah & detail asli
+    // input_fidelity hanya dikirim untuk keluarga gpt-image-1 (model baru bisa menolaknya)
+    if (/^gpt-image-1/.test(model)) form.append('input_fidelity', 'high');
 
     const upstream = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',

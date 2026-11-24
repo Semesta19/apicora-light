@@ -25,7 +25,7 @@ apicora-light/
 | ACCESS_CODE | disarankan | kode akses sederhana pelindung kredit API |
 | GEMINI_MODEL | tidak | default `gemini-3.1-flash-image` |
 | GEMINI_IMAGE_SIZE | tidak | default `1K` |
-| OPENAI_IMAGE_MODEL | tidak | default `gpt-image-1` |
+| OPENAI_IMAGE_MODEL | tidak | default `gpt-image-2.6-sunburst` |
 | OPENAI_IMAGE_QUALITY | tidak | `low` / `medium` / `high` |
 
 \* wajib untuk model yang ingin dipakai.
