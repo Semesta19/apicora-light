@@ -451,6 +451,16 @@
     .ap-select{-webkit-appearance:none;appearance:none;background:transparent url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") no-repeat right center;background-size:12px;color:rgb(var(--c-text));font-family:inherit;font-size:15px;font-weight:500;text-align:right;text-align-last:right;border:0;padding:10px 20px 10px 0;text-overflow:ellipsis;cursor:pointer;min-height:44px}
     .ap-select:focus-visible{outline-offset:2px;border-radius:6px}
     #btnToggleStageHeight,#applyPresetLabel{display:none!important}
+
+    /* Dropdown menu: the one transient glass surface besides the tab bar.
+       Text uses the theme ink explicitly, so it stays readable in dark and light mode. */
+    .ap-menu-layer{position:fixed;inset:0;z-index:90}
+    .ap-menu{position:fixed;overflow-y:auto;overscroll-behavior:contain;padding:6px;border-radius:14px;color:rgb(var(--c-text));background:rgb(var(--c-card)/.78);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);border:.5px solid rgb(var(--c-text)/.2);animation:apMenuIn 140ms ease-out}
+    @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.ap-menu{background:rgb(var(--c-card))}}
+    .ap-menu-item{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;padding:0 12px;border-radius:10px;text-align:left;font-size:15px;line-height:1.25;color:rgb(var(--c-text));background:transparent}
+    .ap-menu-item:hover,.ap-menu-item:focus-visible{background:rgb(var(--c-text)/.1);outline:none}
+    .ap-menu-item[aria-selected="true"]{font-weight:600}
+    @keyframes apMenuIn{from{opacity:0;transform:translateY(-4px)}}
   </style>
 </head>
 
@@ -705,10 +715,10 @@
 
         <!-- 3. TIGHT ERGONOMIC PRIMARY CTA: APPLY LIGHTING BUTTON -->
         <div class="pt-2 pb-1.5">
-          <label class="flex items-center justify-between gap-3 min-h-[44px] mb-1 px-1 text-sm text-apMuted">
+          <div class="flex items-center justify-between gap-3 min-h-[44px] mb-1 px-1 text-sm text-apMuted">
             <span>Model</span>
-            <select id="providerSelect" class="ap-select" aria-label="AI model"><option value="gemini">Gemini</option><option value="openai">OpenAI</option></select>
-          </label>
+            <button id="providerBtn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="AI model" class="min-h-[44px] pl-3 flex items-center gap-1.5 text-[15px] font-medium text-apText"><span data-val>Gemini</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-shrink-0"><polyline points="6 9 12 15 18 9"/></svg></button>
+          </div>
           <button
             id="btnApplyLighting"
             type="button"
@@ -2897,26 +2907,36 @@
          ----------------------------------------------------------------------- */
       function renderPresetsTab() {
         const sel = getSelectedPreset();
-        const cap = (t) => t.toLowerCase().replace(/(^|[\s&]+)([a-z])/g, (m, a, b) => a + b.toUpperCase()).replace(/Ccd/g, 'CCD');
-        const groups = PRESET_CATEGORIES.map((cat) => {
-          const opts = PRESETS.filter((p) => p.category === cat.id)
-            .map((p) => `<option value="${p.id}" ${p.id === sel.id ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
-          return `<optgroup label="${escapeHtml(cap(cat.label))}">${opts}</optgroup>`;
+        const chev = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-shrink-0"><polyline points="6 9 12 15 18 9"/></svg>';
+        const rows = PRESET_CATEGORIES.map((cat) => {
+          const inCat = sel.category === cat.id;
+          return `<button type="button" data-cat="${cat.id}" aria-haspopup="listbox" aria-expanded="false" class="w-full flex items-center justify-between gap-3 min-h-[48px] px-3.5 text-left">
+              <span class="text-sm text-apText flex-shrink-0 ${inCat ? 'font-semibold' : ''}">${escapeHtml(capLabel(cat.label))}</span>
+              <span class="flex items-center gap-1.5 min-w-0 text-sm ${inCat ? 'text-apText' : 'text-apMuted'}">
+                <span class="truncate">${inCat ? escapeHtml(sel.name) : `${cat.count} presets`}</span>${chev}
+              </span>
+            </button>`;
         }).join('');
         dom.activeTabContent.innerHTML = `
-          <label class="flex items-center justify-between gap-3 min-h-[48px] px-3.5 rounded-xl bg-apSecondary border border-apBorder">
-            <span class="text-sm text-apText flex-shrink-0">Preset</span>
-            <select id="presetSelect" class="ap-select min-w-0 flex-1" aria-label="Lighting preset">${groups}</select>
-          </label>
-          <p class="px-1 pt-2.5 text-xs leading-relaxed text-apMuted">${escapeHtml(sel.description)}</p>
+          <div class="rounded-xl bg-apSecondary border border-apBorder divide-y divide-apBorder overflow-hidden">${rows}</div>
+          <div class="px-1 pt-3">
+            <p class="text-sm font-semibold text-apText">${escapeHtml(sel.name)}</p>
+            <p class="text-xs leading-relaxed text-apMuted mt-0.5">${escapeHtml(sel.description)}</p>
+          </div>
         `;
-        document.getElementById('presetSelect').addEventListener('change', (e) => {
-          const p = PRESETS.find((x) => x.id === e.target.value);
-          if (!p) return;
-          state.selectedPresetId = p.id;
-          state.activeCategory = p.category;
-          updateActionButtons();
-          renderPresetsTab();
+        dom.activeTabContent.querySelectorAll('[data-cat]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const cat = PRESET_CATEGORIES.find((c) => c.id === btn.dataset.cat);
+            const items = PRESETS.filter((p) => p.category === cat.id).map((p) => ({ value: p.id, label: p.name }));
+            openMenu(btn, items, state.selectedPresetId, (id) => {
+              state.selectedPresetId = id;
+              state.activeCategory = cat.id;
+              updateActionButtons();
+              renderPresetsTab();
+              const again = dom.activeTabContent.querySelector(`[data-cat="${cat.id}"]`);
+              if (again) again.focus();
+            }, capLabel(cat.label));
+          });
         });
       }
 
@@ -3976,9 +3996,69 @@
         if (m) m.setAttribute('content', t === 'light' ? '#F2F2F7' : '#000000');
       }
 
+      const CHECK_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+      const capLabel = (t) => t.toLowerCase().replace(/(^|[\s&]+)([a-z])/g, (m, a, b) => a + b.toUpperCase()).replace(/Ccd/g, 'CCD');
+      let activeMenu = null;
+
+      function closeMenu(restoreFocus = true) {
+        if (!activeMenu) return;
+        const { layer, trigger, onKey } = activeMenu;
+        document.removeEventListener('keydown', onKey, true);
+        layer.remove();
+        trigger.setAttribute('aria-expanded', 'false');
+        activeMenu = null;
+        if (restoreFocus && document.body.contains(trigger)) trigger.focus();
+      }
+
+      /** Glass popover list. Replaces native <select>, whose popup cannot be themed. */
+      function openMenu(trigger, items, selected, onPick, title) {
+        closeMenu(false);
+        const layer = document.createElement('div');
+        layer.className = 'ap-menu-layer';
+        layer.innerHTML = `<div class="ap-menu" role="listbox" aria-label="${escapeHtml(title)}">${items.map((it) =>
+          `<button type="button" role="option" data-v="${escapeHtml(it.value)}" aria-selected="${it.value === selected}" class="ap-menu-item"><span>${escapeHtml(it.label)}</span>${it.value === selected ? CHECK_SVG : ''}</button>`).join('')}</div>`;
+        document.body.appendChild(layer);
+        const menu = layer.firstElementChild;
+        const r = trigger.getBoundingClientRect();
+        const vw = window.innerWidth, vh = window.innerHeight, gap = 6;
+        const below = vh - r.bottom - gap - 84;   // keep clear of the tab bar
+        const above = r.top - gap - 12;
+        const width = Math.min(Math.max(r.width, 240), vw - 24);
+        menu.style.width = width + 'px';
+        menu.style.left = Math.max(12, Math.min(r.right - width, vw - width - 12)) + 'px';
+        if (below >= 220 || below >= above) {
+          menu.style.top = (r.bottom + gap) + 'px';
+          menu.style.maxHeight = Math.min(420, below) + 'px';
+        } else {
+          menu.style.bottom = (vh - r.top + gap) + 'px';
+          menu.style.maxHeight = Math.min(420, above) + 'px';
+        }
+        const opts = Array.from(menu.querySelectorAll('.ap-menu-item'));
+        const onKey = (e) => {
+          const i = opts.indexOf(document.activeElement);
+          if (e.key === 'Escape') { e.preventDefault(); closeMenu(); }
+          else if (e.key === 'ArrowDown') { e.preventDefault(); opts[Math.min(opts.length - 1, i + 1)].focus(); }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); opts[Math.max(0, i - 1)].focus(); }
+          else if (e.key === 'Home') { e.preventDefault(); opts[0].focus(); }
+          else if (e.key === 'End') { e.preventDefault(); opts[opts.length - 1].focus(); }
+        };
+        document.addEventListener('keydown', onKey, true);
+        layer.addEventListener('click', (e) => {
+          const item = e.target.closest('.ap-menu-item');
+          if (item) { closeMenu(false); onPick(item.dataset.v); }
+          else if (e.target === layer) closeMenu();
+        });
+        trigger.setAttribute('aria-expanded', 'true');
+        activeMenu = { layer, trigger, onKey };
+        (opts.find((o) => o.getAttribute('aria-selected') === 'true') || opts[0]).focus();
+        const cur = menu.querySelector('[aria-selected="true"]');
+        if (cur) cur.scrollIntoView({ block: 'center' });
+      }
+      window.addEventListener('resize', () => closeMenu(false));
+
       function syncProviderSwitch() {
-        const sel = document.getElementById('providerSelect');
-        if (sel) sel.value = state.provider;
+        const el = document.querySelector('#providerBtn [data-val]');
+        if (el) el.textContent = state.provider === 'openai' ? 'OpenAI' : 'Gemini';
       }
 
       function updateActionButtons() {
@@ -4132,9 +4212,14 @@
           applyTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
         });
         syncProviderSwitch();
-        document.getElementById('providerSelect').addEventListener('change', (e) => {
-          state.provider = e.target.value;
-          try { localStorage.setItem('apicora_provider', state.provider); } catch (_) {}
+        document.getElementById('providerBtn').addEventListener('click', (ev) => {
+          const btn = ev.currentTarget;
+          openMenu(btn, [{ value: 'gemini', label: 'Gemini' }, { value: 'openai', label: 'OpenAI' }], state.provider, (v) => {
+            state.provider = v;
+            try { localStorage.setItem('apicora_provider', v); } catch (_) {}
+            syncProviderSwitch();
+            btn.focus();
+          }, 'AI model');
         });
 
         // Main navigation tabs (PRESETS | ADJUST | EXPORT)
